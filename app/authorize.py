@@ -13,7 +13,7 @@ from app.model import (
 )
 
 from app.risk_detection import RiskEngine
-from app.core.transaction import TransactionRepository
+from app.repository.transaction import TransactionRepository
 from app.core.population import generate_population
 from app.core.history import seed_transaction_history
 

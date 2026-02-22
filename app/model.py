@@ -19,14 +19,11 @@ class Transaction(BaseModel):
     transaction_id: str
     customer_id: str
     merchant_id: str
-    amount: float = Field(gt=0, description="Transaction amount in USD")
-    currency: str = "USD"
-    last_four: str
-    card_company: str
-    billing_zip: Optional[str] = None
-    shipping_zip: Optional[str] = None
-    device_fingerprint: Optional[str] = None
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    amount: float
+    timestamp: datetime
+    last_four: Optional[str] = None
+    card_company: Optional[str] = None
+
     class Config:
         json_schema_extra = {
             "example": {
@@ -69,7 +66,7 @@ class RiskAssessment(BaseModel):
 
 class AuthorizationRequest(BaseModel):
     transaction: Transaction
-    pre_verified: bool = False
+    customer_verification_token: Optional[str] = None
 
 class AuthorizationResponse(BaseModel):
     transaction_id: str
@@ -82,9 +79,9 @@ class AuthorizationResponse(BaseModel):
 
 class PreVerificationRequest(BaseModel):
     customer_id: str
-    merchant_id: str
     amount: float
-    verification_method: str = Field(description="Verification method: SMS, email, biometric, etc.")
+    merchant_id: Optional[str] = None
+    verification_method: Optional[str] = None
 
 class PreVerificationResponse(BaseModel):
     verification_token: str

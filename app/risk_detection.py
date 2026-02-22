@@ -24,26 +24,6 @@ class RiskEngine:
         if velocity_risk > 10:
             risk_factors.append("Multiple transactions in short timeframe")
         
-        # Geographic Mismatch
-        if transaction.billing_zip and transaction.shipping_zip:
-            geo_risk = self._assess_geographic_mismatch(
-                transaction.billing_zip,
-                transaction.shipping_zip
-            )
-            total_risk_score += geo_risk
-            if geo_risk > 10:
-                risk_factors.append("Billing and shipping address mismatch")
-        
-        # Device Fingerprint
-        if transaction.device_fingerprint:
-            device_risk = self._assess_device_risk(
-                transaction.customer_id,
-                transaction.device_fingerprint
-            )
-            total_risk_score += device_risk
-            if device_risk > 15:
-                risk_factors.append("Transaction from new or suspicious device")
-        
         # Time-based Patterns
         time_risk = self._assess_time_patterns(transaction.timestamp)
         total_risk_score += time_risk
@@ -111,30 +91,6 @@ class RiskEngine:
             return 10.0  # Moderate velocity
         else:
             return 0.0   # Normal
-    
-    def _assess_geographic_mismatch(self, billing_zip: str, shipping_zip: str) -> float:
-        if billing_zip[:3] != shipping_zip[:3]:
-            return 15.0
-        return 0.0
-    
-    def _assess_device_risk(self, customer_id: str, device_fingerprint: str) -> float:
-        # Initialize known devices for new customers
-        if customer_id not in self.known_devices:
-            self.known_devices[customer_id] = set()
-        
-        # Checking if device is known
-        if device_fingerprint in self.known_devices[customer_id]:
-            return 0.0  # Known device = low risk
-        
-        # New device detected
-        # Add to known devices for future
-        self.known_devices[customer_id].add(device_fingerprint)
-        
-        # For simulation: 30% of new devices are flagged as high risk
-        if random.random() > 0.7:
-            return 20.0  # Suspicious new device
-        else:
-            return 10.0  # New but not suspicious
     
     def _assess_time_patterns(self, timestamp: datetime) -> float:
         # flagging trasactions at unusual hours 

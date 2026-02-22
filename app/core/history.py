@@ -1,4 +1,4 @@
-from app.core.transaction import TransactionRepository
+from app.repository.transaction import TransactionRepository
 from app.core.population import generate_transaction
 
 

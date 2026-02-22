@@ -1,7 +1,7 @@
 import sqlite3
-from pathlib import Path
+from datetime import datetime
 
-DB_PATH = Path(__file__).resolve().parents[2] / "transactions.db"
+DB_PATH = "transactions.db"
 
 
 class TransactionRepository:
@@ -27,7 +27,18 @@ class TransactionRepository:
                 )
             """)
             conn.commit()
+    def get_unique_customers(self):
+        with sqlite3.connect(DB_PATH) as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT DISTINCT customer_id FROM transactions")
+            return [row[0] for row in cursor.fetchall()]
 
+    def get_unique_merchants(self):
+        with sqlite3.connect(DB_PATH) as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT DISTINCT merchant_id FROM transactions")
+            return [row[0] for row in cursor.fetchall()]
+    
     def get_all_transactions(self):
         with sqlite3.connect(DB_PATH) as conn:
             conn.row_factory = sqlite3.Row
