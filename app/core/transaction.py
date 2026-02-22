@@ -1,13 +1,8 @@
 import sqlite3
-from datetime import datetime
+from pathlib import Path
 
-DB_NAME = "transactions.db"
+DB_PATH = Path(__file__).resolve().parents[2] / "transactions.db"
 
-
-class TransactionRepository:
-    import sqlite3
-
-DB_NAME = "transactions.db"
 
 class TransactionRepository:
 
@@ -15,7 +10,7 @@ class TransactionRepository:
         self._initialize_db()
 
     def _initialize_db(self):
-        with sqlite3.connect(DB_NAME) as conn:
+        with sqlite3.connect(DB_PATH) as conn:
             cursor = conn.cursor()
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS transactions (
@@ -32,7 +27,14 @@ class TransactionRepository:
                 )
             """)
             conn.commit()
-            
+
+    def get_all_transactions(self):
+        with sqlite3.connect(DB_PATH) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM transactions")
+            return [dict(row) for row in cursor.fetchall()]
+
     def save_transaction_from_seed(
         self,
         transaction_id,
@@ -41,7 +43,7 @@ class TransactionRepository:
         amount,
         timestamp
     ):
-        with sqlite3.connect(DB_NAME) as conn:
+        with sqlite3.connect(DB_PATH) as conn:
             cursor = conn.cursor()
             cursor.execute("""
                 INSERT INTO transactions VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -50,11 +52,30 @@ class TransactionRepository:
                 customer_id,
                 merchant_id,
                 amount,
-                0.0,                 # risk_score
-                "LOW",               # risk_level
-                1,                   # approved
-                "Historical seed",   # message
-                amount,              # revenue_saved
+                0.0,
+                "LOW",
+                1,
+                "Historical seed",
+                amount,
                 timestamp.isoformat()
+            ))
+            conn.commit()
+
+    def save_transaction(self, transaction, response):
+        with sqlite3.connect(DB_PATH) as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT INTO transactions VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                transaction.transaction_id,
+                transaction.customer_id,
+                transaction.merchant_id,
+                transaction.amount,
+                response.risk_assessment.risk_score,
+                response.risk_assessment.risk_level,
+                int(response.approved),
+                response.message,
+                response.revenue_saved,
+                transaction.timestamp.isoformat()
             ))
             conn.commit()
