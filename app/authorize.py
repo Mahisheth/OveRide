@@ -10,44 +10,22 @@ from app.model import (
     PreVerificationResponse,
     Transaction
 )
-from app.risk_engine import RiskEngine
+from app.risk_detection import RiskEngine
 
 
 class AuthorizationEngine:
     
     def __init__(self):
         self.risk_engine = RiskEngine()
-        
-        # Store pre-verification tokens: key = f"{customer_id}:{transaction_amount}"
         self.pre_verified_tokens: Dict[str, PreVerificationResponse] = {}
-        
-        # Transaction history for analytics
         self.transaction_history = []
     
     def pre_verify_transaction(
         self,
         request: PreVerificationRequest
     ) -> PreVerificationResponse:
-        """
-        Enable customers to pre-verify high-risk purchases BEFORE attempting.
-        
-        Flow:
-        1. Customer initiates pre-verification for a risky purchase
-        2. System generates a verification token
-        3. In production: Send SMS/email/biometric challenge
-        4. For simulation: Automatically verified
-        5. Token expires in 15 minutes
-        
-        Returns: Verification token that can be used with authorization request
-        """
-        # Generate unique verification token
         verification_token = str(uuid.uuid4())
-        
-        # Token expires in 15 minutes
-        expires_at = datetime.utcnow() + timedelta(minutes=15)
-        
-        # Store the verification
-        # Key: customer_id:amount (so same customer can verify multiple amounts)
+        expires_at = datetime.now() + timedelta(minutes=15)
         key = f"{request.customer_id}:{request.amount}"
         
         response = PreVerificationResponse(
@@ -56,9 +34,7 @@ class AuthorizationEngine:
             verified=True,
             message="Pre-verification successful. You can now complete your purchase."
         )
-        
         self.pre_verified_tokens[key] = response
-        
         return response
     
     def authorize_transaction(
@@ -67,28 +43,19 @@ class AuthorizationEngine:
     ) -> AuthorizationResponse:
         start_time = time.time()
         transaction = request.transaction
-        
-        # Step 1: Calculate risk
         risk_assessment = self.risk_engine.calculate_risk_score(transaction)
-        
-        # Step 2: Check pre-verification status
         is_pre_verified = self._check_pre_verification(
             transaction.customer_id,
             transaction.amount,
             request.customer_verification_token
         )
-        
-        # Step 3: Make authorization decision
         status, approved, message, revenue_saved = self._make_decision(
             risk_assessment,
             is_pre_verified,
             transaction.amount
         )
+        processing_time = (time.time() - start_time) * 1000 
         
-        # Calculate processing time
-        processing_time = (time.time() - start_time) * 1000  # Convert to ms
-        
-        # Build response
         response = AuthorizationResponse(
             transaction_id=transaction.transaction_id,
             status=status,
@@ -99,14 +66,12 @@ class AuthorizationEngine:
             revenue_saved=revenue_saved
         )
         
-        # Store transaction for analytics
         self.transaction_history.append({
             'transaction': transaction,
             'response': response,
             'timestamp': datetime.utcnow(),
             'pre_verified': is_pre_verified
         })
-        
         return response
     
     def _check_pre_verification(
@@ -118,21 +83,18 @@ class AuthorizationEngine:
         if not verification_token:
             return False
         
-        # Look up stored verification
         key = f"{customer_id}:{amount}"
         stored_verification = self.pre_verified_tokens.get(key)
         
         if not stored_verification:
             return False
         
-        # Check token matches
         if stored_verification.verification_token != verification_token:
             return False
         
-        # Check token not expired
-        if datetime.utcnow() > stored_verification.expires_at:
+        if datetime.now() > stored_verification.expires_at:
             return False
-        
+
         return True
     
     def _make_decision(
@@ -151,7 +113,7 @@ class AuthorizationEngine:
                 0.0
             )
         
-        # Case 2: High/Critical risk WITH pre-verification - INSTANT APPROVAL
+        # Case 2: High/Critical risk with pre-verification
         if is_pre_verified:
             return (
                 TransactionStatus.PRE_VERIFIED,
@@ -161,7 +123,7 @@ class AuthorizationEngine:
                 amount  # This revenue would have been lost without pre-verification!
             )
         
-        # Case 3: High/Critical risk WITHOUT pre-verification - Decline
+        # Case 3: High/Critical risk without pre-verification - Decline
         return (
             TransactionStatus.DECLINED,
             False,
@@ -176,7 +138,6 @@ class AuthorizationEngine:
         start_date: datetime,
         end_date: datetime
     ) -> Optional[Dict]:
-        # Filter transactions for this merchant within time period
         merchant_txns = [
             record for record in self.transaction_history
             if record['transaction'].merchant_id == merchant_id
@@ -197,14 +158,14 @@ class AuthorizationEngine:
             for r in merchant_txns
         )
         
-        # Count fraud prevented (high-risk declined transactions)
+        # fraud prevented 
         fraud_prevented = sum(
             1 for r in merchant_txns
             if r['response'].status == TransactionStatus.DECLINED
             and r['response'].risk_assessment.risk_score >= 70
         )
         
-        # Calculate average risk
+        # average risk
         avg_risk = sum(
             r['response'].risk_assessment.risk_score
             for r in merchant_txns
@@ -225,7 +186,6 @@ class AuthorizationEngine:
         }
     
     def get_transaction_history(self, limit: int = 50) -> list:
-        """Get recent transactions for review/debugging"""
         recent = self.transaction_history[-limit:]
         return [
             {

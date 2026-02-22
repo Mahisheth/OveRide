@@ -8,41 +8,30 @@ from app.model import (
     PreVerificationResponse
 )
 
-from app.authorization_engine import AuthorizationEngine
+from app.authorize import AuthorizationEngine
 
 app = FastAPI(title="OveRide Fraud Protection API")
 
 # Initialize the authorization engine
 auth_engine = AuthorizationEngine()
 
-
-# -----------------------------
 # Root Endpoint
-# -----------------------------
 @app.get("/")
 def root():
     return {"message": "OveRide API running"}
 
-
-# -----------------------------
 # Authorize Transaction
-# -----------------------------
+
 @app.post("/authorize", response_model=AuthorizationResponse)
 def authorize(request: AuthorizationRequest):
     return auth_engine.authorize_transaction(request)
 
-
-# -----------------------------
 # Pre-Verify Transaction
-# -----------------------------
 @app.post("/preverify", response_model=PreVerificationResponse)
 def preverify(request: PreVerificationRequest):
     return auth_engine.pre_verify_transaction(request)
 
-
-# -----------------------------
 # Merchant Analytics
-# -----------------------------
 @app.get("/analytics/{merchant_id}")
 def analytics(merchant_id: str):
     start = datetime.now()
@@ -56,10 +45,7 @@ def analytics(merchant_id: str):
 
     return result
 
-
-# -----------------------------
 # Transaction History
-# -----------------------------
 @app.get("/transactions")
 def transactions():
     return auth_engine.get_transaction_history()

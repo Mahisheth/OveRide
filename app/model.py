@@ -44,15 +44,9 @@ class RiskAssessment(BaseModel):
     risk_score: float = Field(ge=0,le=100, description="Risk score from 0 (lowest risk) to 100 (highest risk)")
     risk_level: RiskLevel
     risk_factors: List[str] = Field(default_factory=list,description="List of specific risk factors detected")
-    confidence: float = Field(
-    ge=0,
-    le=1,
-    description="Confidence in the risk assessment (0-1)"
-    )
+    confidence: float = Field(ge=0,le=1)
     is_fraud: bool
-    fraud_prob: float = Field(
-    ge=0,
-    le=1,)
+    fraud_prob: float = Field(ge=0, le=1,)
 
     class Config:
         json_schema_extra = {
@@ -60,11 +54,13 @@ class RiskAssessment(BaseModel):
             "risk_score": 65.0,
             "risk_level": "high",
             "risk_factors": [
-            "High transaction amount: $1500.00",
-            "Transaction from new device"
+                "High transaction amount: $1500.00",
+                "Transaction from new device"
             ],
-            "confidence": 0.82
-            }
+            "confidence": 0.82,
+            "is_fraud": True,
+            "fraud_prob": 0.65
+        }
 }
 # class RiskFactor(BaseModel):
 # code: str
@@ -72,61 +68,39 @@ class RiskAssessment(BaseModel):
 # weight: float
 
 class AuthorizationRequest(BaseModel):
-    """Request to authorize a transaction"""
     transaction: Transaction
     pre_verified: bool = False
 
 class AuthorizationResponse(BaseModel):
-    """
-    Response from authorization attempt.
-    Includes decision, risk assessment, and revenue impact.
-    """
     transaction_id: str
     status: TransactionStatus
     approved: bool
     risk_assessment: RiskAssessment
     message: str
     processing_time_ms: float
-    revenue_saved: float = 0.0
-    # Key metric: Revenue saved from pre-verified high-risk transactions
-    revenue_saved: float = Field(
-    0.0,
-    description="Amount of revenue saved by approving via pre-verification"
-    )
+    revenue_saved: float = Field(0.0, description="Amount of revenue saved by approving via pre-verification")
 
 class PreVerificationRequest(BaseModel):
-    """Request to pre-verify a customer for a high-risk transaction"""
     customer_id: str
     merchant_id: str
     amount: float
-    verification_method: str = Field(
-    description="Verification method: SMS, email, biometric, etc."
-    )
+    verification_method: str = Field(description="Verification method: SMS, email, biometric, etc.")
 
 class PreVerificationResponse(BaseModel):
-    """Response from pre-verification attempt"""
     verification_token: str
     expires_at: datetime
     verified: bool
     message: Optional[str] = None
 
 class MerchantAnalytics(BaseModel):
-    """
-    Analytics dashboard data for merchants.
-    Shows the business value of the pre-verification system.
-    """
     merchant_id: str
     period_start: datetime
     period_end: datetime
-    # Transaction counts
     total_transactions: int
     total_approved: int
     total_declined: int
     total_pre_verified: int
-    # Key metrics
     fraud_prevented_count: int
-    revenue_saved: float = Field(
-    description="Total revenue saved from pre-verified high-risk transactions"
-    )
+    revenue_saved: float = Field(description="Total revenue saved from pre-verified high-risk transactions")
     approval_rate: float = Field(description="Percentage of approved transactions")
     avg_risk_score: float

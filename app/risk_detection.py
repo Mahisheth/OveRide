@@ -3,7 +3,6 @@ from datetime import datetime, timedelta
 from typing import Dict, List
 from app.model import Transaction, RiskAssessment, RiskLevel
 
-
 class RiskEngine:
     def __init__(self):
         self.velocity_tracker: Dict[str, List[datetime]] = {}
@@ -54,10 +53,10 @@ class RiskEngine:
         # Cap the score at 100
         total_risk_score = min(100.0, total_risk_score)
         
-        # Determine categorical risk level
+        # categorical risk level
         risk_level = self._categorize_risk_level(total_risk_score)
         
-        # Calculate confidence (more factors = higher confidence)
+        # confidence (more factors = higher confidence)
         confidence = self._calculate_confidence(len(risk_factors))
         
         is_fraud = total_risk_score >= 70
@@ -71,7 +70,7 @@ class RiskEngine:
             is_fraud=is_fraud,
             fraud_prob=fraud_prob
         )
-    
+    # risk assessment
     def _assess_amount_risk(self, amount: float) -> float:
         if amount < 50:
             return 5.0
@@ -84,15 +83,14 @@ class RiskEngine:
         else:
             # Very high amounts
             return 40.0
-    
+    # velocity assessment
     def _assess_velocity(self, customer_id: str) -> float:
-        now = datetime.utcnow()
+        now = datetime.now()
         
         # Initialize tracking for new customers
         if customer_id not in self.velocity_tracker:
             self.velocity_tracker[customer_id] = []
-        
-        # Clean up old transactions (older than 1 hour)
+
         self.velocity_tracker[customer_id] = [
             ts for ts in self.velocity_tracker[customer_id]
             if now - ts < timedelta(hours=1)
@@ -104,9 +102,9 @@ class RiskEngine:
         # Add this transaction to the tracker
         self.velocity_tracker[customer_id].append(now)
         
-        # Calculate velocity risk
+        #  velocity risk
         if recent_count >= 5:
-            return 35.0  # Very suspicious
+            return 35.0  # Very high velocity
         elif recent_count >= 3:
             return 20.0  # High velocity
         elif recent_count >= 2:
@@ -115,22 +113,16 @@ class RiskEngine:
             return 0.0   # Normal
     
     def _assess_geographic_mismatch(self, billing_zip: str, shipping_zip: str) -> float:
-        # Simple check: if first 3 digits differ, locations are likely far apart
         if billing_zip[:3] != shipping_zip[:3]:
             return 15.0
         return 0.0
     
     def _assess_device_risk(self, customer_id: str, device_fingerprint: str) -> float:
-        """
-        Check if the device is known for this customer.
-        New devices can indicate account takeover.
-        Returns risk score contribution (0-20 points).
-        """
         # Initialize known devices for new customers
         if customer_id not in self.known_devices:
             self.known_devices[customer_id] = set()
         
-        # Check if device is known
+        # Checking if device is known
         if device_fingerprint in self.known_devices[customer_id]:
             return 0.0  # Known device = low risk
         
@@ -139,18 +131,13 @@ class RiskEngine:
         self.known_devices[customer_id].add(device_fingerprint)
         
         # For simulation: 30% of new devices are flagged as high risk
-        # In production, you'd check device reputation databases
         if random.random() > 0.7:
             return 20.0  # Suspicious new device
         else:
             return 10.0  # New but not suspicious
     
     def _assess_time_patterns(self, timestamp: datetime) -> float:
-        """
-        Flag transactions at unusual hours (late night/early morning).
-        Fraudsters often operate during off-hours.
-        Returns risk score contribution (0-15 points).
-        """
+        # flagging trasactions at unusual hours 
         hour = timestamp.hour
         
         # Suspicious hours: 2 AM - 6 AM
@@ -163,15 +150,7 @@ class RiskEngine:
             return 0.0
     
     def _categorize_risk_level(self, risk_score: float) -> RiskLevel:
-        """
-        Convert numeric risk score to categorical level.
-        
-        Thresholds:
-        - Low: 0-29 (auto-approve)
-        - Medium: 30-49 (approve with monitoring)
-        - High: 50-69 (require pre-verification)
-        - Critical: 70-100 (require pre-verification)
-        """
+        # converting numeric score to categorical level
         if risk_score >= 70:
             return RiskLevel.CRITICAL
         elif risk_score >= 50:
@@ -182,10 +161,7 @@ class RiskEngine:
             return RiskLevel.LOW
     
     def _calculate_confidence(self, num_factors: int) -> float:
-        """
-        Calculate confidence in the risk assessment.
-        More detected factors = higher confidence.
-        """
-        base_confidence = 0.60
+       # confidence in risk scores
+        base_confidence = 0.5
         factor_boost = num_factors * 0.08
         return min(0.95, base_confidence + factor_boost)
