@@ -1,5 +1,5 @@
-from app.repository.transaction_repository import TransactionRepository
-from app.core.population.generator import generate_transaction
+from app.core.transaction import TransactionRepository
+from app.core.population import generate_transaction
 
 
 def seed_transaction_history(customers: dict, transactions_per_customer=100):
