@@ -101,7 +101,6 @@ class AuthorizationResponse(BaseModel):
     risk_assessment: RiskAssessment
     message: str
     processing_time_ms: float
-    revenue_saved: float = 0.0
     
     # Key metric: Revenue saved from pre-verified high-risk transactions
     revenue_saved: float = Field(
