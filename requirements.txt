@@ -1,7 +1,4 @@
-<<<<<<< HEAD
-streamlit
-=======
 fastapi==0.109.0
+uvicorn==0.27.0
 pydantic==2.5.3
 python-dateutil==2.8.2
->>>>>>> 5f8eebd (saving changes)
